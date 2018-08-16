@@ -4,10 +4,26 @@ import numpy as np
 from scipy.sparse import dok_matrix, lil_matrix
 from tqdm import tqdm
 
+def read_mult(f_in='dummy/mult.dat',D=8000):
+    fp = open(f_in)
+    lines = fp.readlines()
+    X = np.zeros((len(lines),D))
+    for i,line in enumerate(lines):
+        strs = line.strip().split(' ')[1:]
+        for strr in strs:
+            segs = strr.split(':')
+            X[i,int(segs[0])] = float(segs[1])
+    arr_max = np.amax(X,axis=1)
+    X = (X.T/arr_max).T
+    return X
+
+def get_mult():
+    X = read_mult('dummy/mult.dat',8000).astype(np.float32)
+    return X
 
 def citeulike(tag_occurence_thres=10):
     user_dict = defaultdict(set)
-    for u, item_list in enumerate(open("citeulike-t/users.dat").readlines()):
+    for u, item_list in enumerate(open("dummy/users.dat").readlines()):
         items = item_list.strip().split(" ")
         # ignore the first element in each line, which is the number of items the user liked. 
         for item in items[1:]:
@@ -17,12 +33,12 @@ def citeulike(tag_occurence_thres=10):
     n_items = max([item for items in user_dict.values() for item in items]) + 1
 
     user_item_matrix = dok_matrix((n_users, n_items), dtype=np.int32)
-    for u, item_list in enumerate(open("citeulike-t/users.dat").readlines()):
+    for u, item_list in enumerate(open("dummy/users.dat").readlines()):
         items = item_list.strip().split(" ")
         # ignore the first element in each line, which is the number of items the user liked. 
         for item in items[1:]:
             user_item_matrix[u, int(item)] = 1
-
+    '''
     n_features = 0
     for l in open("citeulike-t/tag-item.dat").readlines():
         items = l.strip().split(" ")
@@ -36,11 +52,12 @@ def citeulike(tag_occurence_thres=10):
         if len(items) >= tag_occurence_thres:
             features[[int(i) for i in items], feature_index] = 1
             feature_index += 1
-
+    '''
+    features = dok_matrix(get_mult())
     return user_item_matrix, features
 
 
-def split_data(user_item_matrix, split_ratio=(3, 1, 1), seed=1):
+def split_data(user_item_matrix, split_ratio=(3, 1, 0), seed=1):
     # set the seed to have deterministic results
     np.random.seed(seed)
     train = dok_matrix(user_item_matrix.shape)
